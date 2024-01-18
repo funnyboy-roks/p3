@@ -12,5 +12,5 @@ tolerable language to work with.
 
 ## Want to support in the future
 
-- `{` and `}` to make blocks that go tot he appropriate indent.
+- `{` and `}` to make blocks that go to the appropriate indent.
 - Other stuff? Idk, open to ideas!

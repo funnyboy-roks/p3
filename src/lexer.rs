@@ -24,6 +24,8 @@ pub enum Token {
     AsteriskEquals,
     DoubleAsterisk,
     DoubleAsteriskEquals,
+    Ampersand,
+    AmpersandEquals,
     Pipe,
     PipeEquals,
     ThinArrow,
@@ -89,6 +91,10 @@ pub enum Token {
     While,
     With,
     Yield,
+
+    // == Custom Tokens ==
+    DoubleAmpersand,
+    DoublePipe,
 }
 
 impl Token {
@@ -124,6 +130,8 @@ impl Token {
             Token::AsteriskEquals => write_str!("*="),
             Token::DoubleAsterisk => write_str!("**"),
             Token::DoubleAsteriskEquals => write_str!("**="),
+            Token::Ampersand => write_str!('&'),
+            Token::AmpersandEquals => write_str!("&="),
             Token::Pipe => write_str!('|'),
             Token::PipeEquals => write_str!("|="),
             Token::ThinArrow => write_str!("->"),
@@ -150,10 +158,7 @@ impl Token {
                 let val = val.replace('\'', "\\\'");
                 write!(w, "{}'{}'", tags, val)?;
             }
-            Token::Comment(text) => {
-                write_str!('#');
-                write_str!(text);
-            }
+            Token::Comment(text) => write!(w, "#{}", text)?,
             Token::IntLit(n) => write_str!(n, s),
             Token::FloatLit(n) => write_str!(n, s),
             Token::BooleanLit(b) => write_str!(if *b { "True" } else { "False" }, s),
@@ -188,6 +193,9 @@ impl Token {
             Token::While => write_str!("while", s),
             Token::With => write_str!("with", s),
             Token::Yield => write_str!("yield", s),
+
+            Token::DoubleAmpersand => write_str!("and", s),
+            Token::DoublePipe => write_str!("or", s),
         };
 
         Ok(())
@@ -352,7 +360,7 @@ impl Lexer {
             "elif" => Token::Elif,
             "else" => Token::Else,
             "except" => Token::Except,
-            "False" => Token::BooleanLit(true),
+            "False" | "false" => Token::BooleanLit(true),
             "finally" => Token::Finally,
             "for" => Token::For,
             "from" => Token::From,
@@ -369,7 +377,7 @@ impl Lexer {
             "pass" => Token::Pass,
             "raise" => Token::Raise,
             "return" => Token::Return,
-            "True" => Token::BooleanLit(true),
+            "True" | "true" => Token::BooleanLit(true),
             "try" => Token::Try,
             "while" => Token::While,
             "with" => Token::With,
@@ -432,13 +440,28 @@ impl Iterator for Lexer {
                 }
                 ';' => break Token::SemiColon,
                 ',' => break Token::Comma,
-                '|' => {
-                    if self.peek_char() == '=' {
+                '&' => match self.peek_char() {
+                    '=' => {
+                        self.take_char();
+                        break Token::AmpersandEquals;
+                    }
+                    '&' => {
+                        self.take_char();
+                        break Token::DoubleAmpersand;
+                    }
+                    _ => break Token::Ampersand,
+                },
+                '|' => match self.peek_char() {
+                    '=' => {
                         self.take_char();
                         break Token::PipeEquals;
                     }
-                    break Token::Pipe;
-                }
+                    '|' => {
+                        self.take_char();
+                        break Token::DoublePipe;
+                    }
+                    _ => break Token::Pipe,
+                },
                 '-' => match self.peek_char() {
                     '=' => {
                         self.take_char();
